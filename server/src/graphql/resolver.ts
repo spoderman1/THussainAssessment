@@ -2,10 +2,10 @@ import { subdivisions } from "../../../sample-data/subdivision.json";
 
 export const resolvers = {
   Query: {
-    subdivisions: (parent, args) => {
+    subdivisions: (parent, { limit, offset }, args) => {
       // Filter subdivisions based on args
       const { name, subdivisionStatusCode, nearMapImageDate } = args;
-      return subdivisions.filter((subdivision) => {
+      const data = subdivisions.filter((subdivision) => {
         let match = true;
         if (name && subdivision.name !== name) match = false;
         if (
@@ -20,6 +20,11 @@ export const resolvers = {
           match = false;
         return match;
       });
+      const page = data.slice(offset, offset + limit);
+      return {
+        subdivisions: page,
+        totalRecords: data.length,
+      };
     },
   },
 };

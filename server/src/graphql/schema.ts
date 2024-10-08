@@ -1,7 +1,7 @@
 import { gql } from "apollo-server";
 
 export const typeDefs = gql`
-  type subdivisions {
+  type Subdivision {
     id: Int
     code: String
     name: String
@@ -39,11 +39,18 @@ export const typeDefs = gql`
     subdivisionSpecificStatus: String
   }
 
+  type SubdivisionInfo {
+    subdivisions: [Subdivision]
+    totalRecords: Int
+  }
+
   type Query {
     subdivisions(
       name: String
       subdivisionStatusCode: String
       nearMapImageDate: String
-    ): [subdivisions]
+      limit: Int
+      offset: Int
+    ): SubdivisionInfo
   }
 `;

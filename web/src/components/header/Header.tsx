@@ -1,15 +1,10 @@
-import React from 'react';
-import classNames from 'classnames/bind';
-import logo from './logo-scaled.png';
-
-import styles from './Header.css';
-
-const cn = classNames.bind(styles);
+import React from "react";
+import logo from "./logo-scaled.png";
 
 export const Header = () => {
-    return (
-        <header className={cn('toolbar')}>
-            <img src={logo} className="logo-img"  alt="zonda logo"/>
-        </header>
-    );
+  return (
+    <header className="flex items-center justify-between p-4 bg-gray-800">
+      <img src={logo} className="h-10" alt="Zonda logo" />
+    </header>
+  );
 };
