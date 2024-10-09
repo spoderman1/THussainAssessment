@@ -12,6 +12,8 @@ import {
 } from "@nextui-org/react";
 import { useQuery, gql } from "@apollo/client";
 import client from "../apollo/Apollo";
+import { SubdivisionFilter } from "../filterGroup/filterGroup";
+import { useAsyncList } from "@react-stately/data";
 
 // use effect calls api on first load to get initial data (pagination get first set of results only)
 // then have a use effect to call api again when the filter changes
@@ -65,68 +67,69 @@ const GET_SUBDIVISIONS = gql`
 `;
 
 export const SubdivisionDisplay = () => {
-  const [data, setData] = React.useState(null);
-  const [page, setPage] = React.useState(1);
-  const [totalPages, setTotalPages] = React.useState(1);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<Error | null>(null);
-  const [loadingState, setLoadState] = React.useState("loading");
-
+  const [selectedStatus, setSelectedStatus] = React.useState("Active");
   const limit = 10;
 
-  useEffect(() => {
-    // Fetch data from GraphQL server using client.query
-    const fetchSubdivisions = async () => {
+  const list = useAsyncList({
+    async load({ signal }) {
       try {
-        setLoadState("loading");
         const { data } = await client.query({
           query: GET_SUBDIVISIONS,
           variables: {
             name: null,
-            subdivisionStatusCode: "Active",
+            subdivisionStatusCode: "Future",
             nearMapImageDate: null,
             limit: limit,
-            offset: limit * page,
-          }, // Optional variable for filtering by name
+            offset: limit * 1, // Start at page 1
+          },
+          context: { signal },
         });
-        console.log(data);
-        setData(data.subdivisions.subdivisions);
-        setTotalPages(Math.ceil(data.subdivisions.totalRecords / limit));
+        return {
+          items: data.subdivisions.subdivisions,
+          // You can add any other properties here if necessary
+        };
       } catch (err) {
-        setError(err as Error);
-      } finally {
-        setIsLoading(false);
+        console.error(err);
+        return { items: [] }; // Return an empty array on error
       }
-    };
+    },
+    async sort({ items, sortDescriptor }) {
+      return {
+        items: items.sort((a, b) => {
+          let first = a[sortDescriptor.column];
+          let second = b[sortDescriptor.column];
+          let cmp = (first || "").localeCompare(second || "");
 
-    fetchSubdivisions();
-  }, [page]);
+          if (sortDescriptor.direction === "descending") {
+            cmp *= -1;
+          }
 
-  const rowsPerPage = 20;
+          return cmp;
+        }),
+      };
+    },
+  });
+
+  const handleStatusChange = (newStatus: React.SetStateAction<string>) => {
+    setSelectedStatus(newStatus);
+  };
 
   return (
     <>
+      <SubdivisionFilter
+        selectedStatus={selectedStatus}
+        setSelectedStatus={handleStatusChange}
+      />
       <Table
-        aria-label="Example table with client async pagination"
-        bottomContent={
-          page > 0 ? (
-            <div className="flex w-full justify-center">
-              <Pagination
-                isCompact
-                showControls
-                showShadow
-                color="primary"
-                page={page}
-                total={totalPages}
-                onChange={(page) => setPage(page)}
-              />
-            </div>
-          ) : null
-        }
+        aria-label="Example table with client async pagination and sorting"
+        sortDescriptor={list.sortDescriptor}
+        onSortChange={list.sort}
       >
         <TableHeader>
           <TableColumn key="code">Code</TableColumn>
-          <TableColumn key="name">Name</TableColumn>
+          <TableColumn key="name" allowsSorting>
+            Name
+          </TableColumn>
           <TableColumn key="longitude">Longitude</TableColumn>
           <TableColumn key="latitude">Latitude</TableColumn>
           <TableColumn key="activeSections">Active Sections</TableColumn>
@@ -138,13 +141,9 @@ export const SubdivisionDisplay = () => {
             Subdivision Specific Status
           </TableColumn>
         </TableHeader>
-        <TableBody
-          items={data ?? []}
-          loadingContent={<Spinner />}
-          //loadingState={loadingState}
-        >
+        <TableBody items={list.items} loadingContent={<Spinner />}>
           {(item) => (
-            <TableRow key={item}>
+            <TableRow key={item.code}>
               {(columnKey) => (
                 <TableCell>{getKeyValue(item, columnKey)}</TableCell>
               )}
@@ -152,6 +151,17 @@ export const SubdivisionDisplay = () => {
           )}
         </TableBody>
       </Table>
+      <Pagination
+        isCompact
+        showControls
+        showShadow
+        color="primary"
+        page={1} // Handle pagination logic as necessary
+        total={Math.ceil(list.items.length / limit)}
+        onChange={(page) => {
+          // Update the page and refetch data if necessary
+        }}
+      />
     </>
   );
 };

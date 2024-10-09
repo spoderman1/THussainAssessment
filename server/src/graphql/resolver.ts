@@ -1,6 +1,6 @@
-import { subdivisions } from "../../../sample-data/subdivision.json";
+const subdivisions = require("../../sample-data/subdivision.json");
 
-export const resolvers = {
+const resolvers = {
   Query: {
     subdivisions: (parent, { limit, offset }, args) => {
       // Filter subdivisions based on args
@@ -28,3 +28,5 @@ export const resolvers = {
     },
   },
 };
+
+module.exports = { resolvers };
